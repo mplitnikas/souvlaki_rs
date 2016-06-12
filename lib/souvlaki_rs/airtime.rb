@@ -2,10 +2,16 @@
 module SouvlakiRS
   module Airtime
 
-    AIRTIME_IMPORT_CMD='sudo /usr/bin/airtime-import -c'
+    AIRTIME_IMPORT_CMD='/usr/bin/airtime-import'
 
     def self.import(file)
-      if system( "#{AIRTIME_IMPORT_CMD} \"#{file}\"" )
+
+      if !File.exist?(AIRTIME_IMPORT_CMD) || !File.executable?(AIRTIME_IMPORT_CMD)
+        SouvlakiRS::logger.error "Airtime import cmd #{AIRTIME_IMPORT_CMD} not found"
+        return false
+      end
+
+      if system( "sudo #{AIRTIME_IMPORT_CMD} -c \"#{file}\"" )
         FileUtils.rm_f(file)
         return true
       end
