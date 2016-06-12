@@ -27,6 +27,10 @@ module SouvlakiRS
           # open-uri will create a 0-len file when it fails to fetch. Delete it
           FileUtils.rm(dest)
           return false
+        rescue Timeout::Error
+          SouvlakiRS::logger.error "Connection timeout error when fetching \"#{uri}\": #{response.status[1]}"
+          FileUtils.rm(dest)
+          return false
         end
 
       else

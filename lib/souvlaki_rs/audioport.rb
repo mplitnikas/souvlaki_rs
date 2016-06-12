@@ -57,103 +57,108 @@ module SouvlakiRS
 
       # go to the show's page
       uri = "#{@@creds[:base_uri]}?op=series&amp;series=#{show_name_uri}"
-      spider.get(uri)
-      SouvlakiRS::logger.info "fetched '#{uri}', status code: #{spider.page.code.to_i}"
 
-      # we have the page of results. Audioport formats this a little funky:
-      # <div id="result_set">
-      #   <table>
-      #     <tr> td headings </tr>
-      #     <tr><td>latest show's 'program name' </tr> (unterminated td)
-      #     <tr><td></td><td>producer</td><td>date (YYYY-MM-DD format)</td><td>length</td></tr>
-      #
-      # start by getting the list of tr
-      trs = spider.page.search("//div[@id='result_set']").search('tr')
+      begin
+        spider.get(uri)
+        SouvlakiRS::logger.info "fetched '#{uri}', status code: #{spider.page.code.to_i}"
 
-      ii = 2
-      while ii < trs.length do
-        # therefore, we find each entry every-other one starting from
-        # the 3rd TR and then fetch the 3rd td to extract the date -
-        # also, replace \u00a0 for &nbsp; and strip to remove
-        # surrounding whitespace
-        date = trs[ii].search('td')[2].text.gsub(/\u00A0/, '').strip
+        # we have the page of results. Audioport formats this a little funky:
+        # <div id="result_set">
+        #   <table>
+        #     <tr> td headings </tr>
+        #     <tr><td>latest show's 'program name' </tr> (unterminated td)
+        #     <tr><td></td><td>producer</td><td>date (YYYY-MM-DD format)</td><td>length</td></tr>
+        #
+        # start by getting the list of tr
+        trs = spider.page.search("//div[@id='result_set']").search('tr')
 
-        break if date < show_date
+        ii = 2
+        while ii < trs.length do
+          # therefore, we find each entry every-other one starting from
+          # the 3rd TR and then fetch the 3rd td to extract the date -
+          # also, replace \u00a0 for &nbsp; and strip to remove
+          # surrounding whitespace
+          date = trs[ii].search('td')[2].text.gsub(/\u00A0/, '').strip
 
-        SouvlakiRS::logger.info " TR #{ii} is #{date}"
+          break if date < show_date
 
-        if date == show_date
-          # we have a match so we must follow to the next page which
-          # actually carries the link to the MP3. Grab the first link to
-          # the programs that corresponds to the entry we matched
-          links = spider.page.links
-          uris = links.select { |l| l.href.include? "program-info" if l.href }
-          uri = uris[(ii/2)-1]
+          SouvlakiRS::logger.info " TR #{ii} is #{date}"
 
-          SouvlakiRS::logger.info "date match (#{date}) - following #{uri.href}"
-          uri.click
+          if date == show_date
+            # we have a match so we must follow to the next page which
+            # actually carries the link to the MP3. Grab the first link to
+            # the programs that corresponds to the entry we matched
+            links = spider.page.links
+            uris = links.select { |l| l.href.include? "program-info" if l.href }
+            uri = uris[(ii/2)-1]
 
-          # we're now on the final page that contains the link(s) to
-          # download - look by searching for 'file_id'.
-          uri_list = spider.page.links.select { |l| l.href.include? "file_id" if l.href }
+            SouvlakiRS::logger.info "date match (#{date}) - following #{uri.href}"
+            uri.click
 
-          if uri_list.empty?
-            SouvlakiRS::logger.warn "No entries found for date"
-          end
+            # we're now on the final page that contains the link(s) to
+            # download - look by searching for 'file_id'.
+            uri_list = spider.page.links.select { |l| l.href.include? "file_id" if l.href }
 
-          jj = 0
-          uri_list.each do |l|
-
-            SouvlakiRS::logger.info "starting download for #{l.href}"
-
-            # fetch the data
-            data = spider.get( l.href )
-            if data
-              # filename might be in header's content-disposition
-              filename=''
-              cd = data.header['content-disposition'].split("=")
-              if cd.length > 1
-                # extract the filename
-                filename = cd[1].gsub(/\A"|"\Z/, '')
-                filename = "#{filename.slice(0..(filename.downcase.index('.mp3')))}mp3"
-              end
-
-              SouvlakiRS::logger.info "Header content-disposition: #{filename}"
-
-              if filename.length == 0
-                # not included - make one up
-                filename = "#{show_date}-#{show_name}-#{jj}.mp3"
-              end
-
-              dest_file = File.join(@@TMP_DIR, filename)
-
-              # delete if it exists
-              FileUtils.rm_f(dest_file) if File.exist?(dest_file)
-
-              data.save_as(dest_file)
-
-              SouvlakiRS::logger.info "File saved: #{dest_file}"
-
-              # either downloaded it or file was there already
-              files << dest_file
-
-              # some audioport pages have the file linked twice w/
-              # different urls. TODO: don't bother fetching more than
-              # 1 until we find out if there are cases we should -
-              # perhaps check label?
-              break
-            else
-              SouvlakiRS::logger.error "download failed"
+            if uri_list.empty?
+              SouvlakiRS::logger.warn "No entries found for date"
             end
 
-            jj += 1
+            jj = 0
+            uri_list.each do |l|
+
+              SouvlakiRS::logger.info "starting download for #{l.href}"
+
+              # fetch the data
+              data = spider.get( l.href )
+              if data
+                # filename might be in header's content-disposition
+                filename=''
+                cd = data.header['content-disposition'].split("=")
+                if cd.length > 1
+                  # extract the filename
+                  filename = cd[1].gsub(/\A"|"\Z/, '')
+                  filename = "#{filename.slice(0..(filename.downcase.index('.mp3')))}mp3"
+                end
+
+                SouvlakiRS::logger.info "Header content-disposition: #{filename}"
+
+                if filename.length == 0
+                  # not included - make one up
+                  filename = "#{show_date}-#{show_name}-#{jj}.mp3"
+                end
+
+                dest_file = File.join(@@TMP_DIR, filename)
+
+                # delete if it exists
+                FileUtils.rm_f(dest_file) if File.exist?(dest_file)
+
+                data.save_as(dest_file)
+
+                SouvlakiRS::logger.info "File saved: #{dest_file}"
+
+                # either downloaded it or file was there already
+                files << dest_file
+
+                # some audioport pages have the file linked twice w/
+                # different urls. TODO: don't bother fetching more than
+                # 1 until we find out if there are cases we should -
+                # perhaps check label?
+                break
+              else
+                SouvlakiRS::logger.error "download failed"
+              end
+
+              jj += 1
+            end
+
           end
 
+          ii += 2
         end
-
-        ii += 2
+      rescue #Timeout::Error
+        SouvlakiRS::logger.error "Connection timeout error when fetching \"#{uri}\"."
+        return nil
       end
-
 
       # logout
 #      uri = "#{@@creds[:base_uri]}?op=logout&amp;"
