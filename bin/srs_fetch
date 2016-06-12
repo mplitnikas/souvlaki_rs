@@ -7,12 +7,6 @@ require 'optparse'
 require 'date'
 require 'souvlaki_rs'
 
-# describe the codes
-def list_codes(pc)
-  $stderr.puts "Code List:"
-  pc.each_pair { |code,data| $stderr.puts " #{code}\t-\t'#{data[:pub_title]}'" }
-end
-
 # This hash will hold all of the options parsed from the command-line
 options = {}
 optparse = OptionParser.new do |opts|
@@ -60,7 +54,7 @@ optparse = OptionParser.new do |opts|
   end
 
   opts.on( '-l', '--list_program_codes', 'Display list of program codes to pass as the argument.' ) do
-    list_codes(SouvlakiRS::Config.get_program_info)
+    SouvlakiRS::Config.list_program_codes
     exit
   end
 
