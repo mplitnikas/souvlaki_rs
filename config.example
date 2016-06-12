@@ -1,0 +1,38 @@
+{
+     :audioport {
+       		  :base_uri "http://audioport.org/index.php"
+       		  :username ""
+              	  :password ""
+                }
+     :basecamp {
+                  :base_uri "https://basecamp.com/"
+             	  :username ""
+              	  :password ""
+               	  :id       ""  ; basecamp id
+               	  :project  ""  ; scheduling project id
+		  :msg_id   "" ; discussion id
+		  :ua_email "" ; email to include in user-agent string
+               }
+     :programs {
+     	          :dn    { :pub_title "Democracy Now!",
+		  	   :creator   "Democracy Now!",
+			   :name      "Democracy Now!",
+		  	   :source    :file,
+			   :base_url  "http://distro.democracynow.org",
+			   :format    "dn%Y-%m%d-1.mp3"
+			   :block     60
+			 }
+		  :haf   { :pub_title "Your Own Health And Fitness",
+			   :creator   "Health & Fitness",
+			   :name      "Health & Fitness",
+		  	   :source    :audioport,
+			   :block     60
+			 }
+		  :lr    { :pub_title "Labor Radio",
+		           :creator   "Workers Independent News",
+			   :name      "Labor Radio",
+			   :source    :rss,
+			   :feed      "http://feeds.soundcloud.com/users/soundcloud:users:11145218/sounds.rss"
+		  	 }
+     	       }
+}

@@ -1,0 +1,8 @@
+*.old
+.*.old
+*.bak
+*~
+.*~
+*.gem
+config
+Gemfile.lock
