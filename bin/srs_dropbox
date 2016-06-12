@@ -1,0 +1,180 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+$LOAD_PATH << File.expand_path( File.dirname(__FILE__) + '/../lib' )
+
+require 'optparse'
+require 'date'
+require 'souvlaki_rs'
+require 'listen'
+
+# This hash will hold all of the options parsed from the command-line
+options = {}
+optparse = OptionParser.new do |opts|
+  opts.banner  = "Usage: #{$0} [options] program_code"
+
+  options[:import] = false
+  opts.on( '-i', '--import', 'Import downloaded into Airtime.' ) do
+    options[:import] = true
+  end
+
+  options[:post] = false
+  opts.on( '-p', '--post', 'Post notification to Basecamp.' ) do
+    options[:post] = true
+  end
+
+  opts.on( '-a', '--all_opts', 'Equivalent to running with -t -i -p.' ) do
+    options[:write_tags] = true
+    options[:import] = true
+    options[:post] = true
+  end
+
+  options[:verbose] = false
+  opts.on( '-v', '--verbose', 'Logs info messages in addition to warn and errors.' ) do
+    options[:verbose] = true
+  end
+
+  opts.on( '-l', '--list_program_codes', 'Display list of program codes to pass as the argument.' ) do
+    SouvlakiRS::Config.list_program_codes
+    exit
+  end
+
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    $stderr.puts opts
+    exit
+  end
+end
+optparse.parse!
+
+#
+#
+def process_file(files, programs, sender)
+  status = false
+
+  files.each do |file|
+    path = File.dirname(file)
+    p = programs.select { |p| p[:folder].eql?(path) }
+
+    break if p.empty?
+
+    prog = p[0]
+    album = prog.key?(:album) ? prog[:album] : prog[:folder]
+    creator = prog.key?(:producer) ? prog[:producer] : nil
+
+    SouvlakiRS::logger.info "Import detected for: #{prog}"
+
+    tags = SouvlakiRS::Tag.audio_file_read_tags(file)
+    filename = File.basename(file)
+    file_dur = tags[:length] / 60.0
+    subj = "Import for #{album}: "
+    warn_msg = ''
+
+    # check file length
+    if prog.key?(:block)
+      block_len = prog[:block]
+      SouvlakiRS::logger.info "Block length given: #{block_len}"
+
+      # check if length exceeds max recommended length
+      case block_len
+      when 60, 120
+        max_len = block_len - 3
+      else
+        max_len = 29
+      end
+
+      # check if it exceeds the block length
+      if file_dur > (block_len + 1)
+        # it does, report it
+        d_hms = Time.at(program[:tags][:length]).utc.strftime("%H:%M:%S")
+        msg = "Error: your program's length (#{d_hms}) exceeds our your length. #{block_len}-minute shows should be at most #{max_len}-minutes in length\n"
+        msg << "Your file will NOT be imported"
+        subj << 'FAILED'
+        SouvlakiRS::logger.error "File duration error: #{d_hms} - notifying #{prog[:email]}"
+
+        SouvlakiRS::Email.send(sender, prog[:email], subj, msg)
+        return false
+      elsif file_dur > max_len
+        # include a warning if it's longer than the recommended length
+        d_hms = Time.at(program[:tags][:length]).utc.strftime("%H:%M:%S")
+        warn_msg << "\nWarning: your program's length (#{d_hms}) exceeds our guidelines for your block length. #{block_len}-minute shows should be at most #{max_len}-minutes in length\n"
+        SouvlakiRS::logger.warn "File duration warning: #{d_hms}"
+      end
+    end
+
+    # retag the file - will return nil if title is not set
+    tags = SouvlakiRS::Tag.retag_user_file(file, tags, album, creator)
+
+    if tags && SouvlakiRS::Airtime.import(file)
+      msg = "The file \"#{filename}\" was imported. The title tag read was:\n\n\t#{tags[:title]}\n\nIf this looks correct, please notify the schedulers and include the title tag.\nIf not correct, ensure you uploaded the correct file."
+      subj << 'OK'
+      status = true
+
+      SouvlakiRS::logger.info "File #{filename} imported"
+    else
+      msg = "The file \"#{filename}\" does not have a Title tag so it won't be imported"
+      subj << 'FAILED'
+      SouvlakiRS::logger.error "File #{filename} has no title tag"
+    end
+
+    break if prog.key?(:notify) && !prog[:notify]
+
+    SouvlakiRS::logger.info "Sending mail to #{prog[:email]}"
+
+    SouvlakiRS::Email.send(sender, prog[:email], subj, msg)
+  end
+  status
+end
+
+SouvlakiRS::logger.verbose(options[:verbose])
+SouvlakiRS::logger.info "Dropbox Watch Starting"
+
+sys_info = SouvlakiRS::Config::get_host_info(:system)
+
+if sys_info == nil
+  SouvlakiRS::logger.error "Config error - host not found"
+  exit
+end
+SouvlakiRS::logger.info "Sender read as #{sys_info[:sender]}"
+
+programs = SouvlakiRS::Config::get_dropbox_folder_info()
+
+if programs == nil
+  SouvlakiRS::logger.error "Config error - no entries found"
+  exit 1
+end
+
+# dropbox info
+db_root = File.join(ENV['HOME'], 'Dropbox')
+
+# update the program folders to include full path
+programs.each do |prog|
+  prog[:folder] = File.join(db_root, prog[:folder])
+end
+
+# Create a callback
+callback = Proc.new do |modified, added, removed|
+  if !added.empty?
+    SouvlakiRS::logger.info "Added absolute path: #{added}"
+    process_file(added, programs, sys_info[:sender])
+  end
+
+  if !modified.empty?
+    SouvlakiRS::logger.info "Modified absolute path: #{modified}"
+    process_file(modified, programs, sys_info[:sender])
+  end
+
+  if !removed.empty?
+    SouvlakiRS::logger.info "Removed absolute path: #{removed}"
+  end
+end
+
+# set up listener
+listener = Listen.to(db_root, &callback)
+listener.only /\.mp3$/i
+listener.ignore /.dropbox.cache/
+listener.ignore /Public/
+listener.ignore /Private/
+listener.ignore /Photos/
+listener.ignore /Station Documents/
+listener.start
+sleep
