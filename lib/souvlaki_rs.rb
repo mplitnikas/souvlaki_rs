@@ -32,7 +32,7 @@ module SouvlakiRS
       files = SouvlakiRS::Audioport.fetch_files(program, date, show_name_uri)
 
       if files.empty?
-        SouvlakiRS::logger.warn "Unable to download #{program} dated #{date} from Audioport"
+        SouvlakiRS::logger.warn "Unable to download '#{program}' dated #{date} from Audioport"
       end
     end
 
@@ -54,7 +54,7 @@ module SouvlakiRS
       # we have the uri and the destination - fetch the audio file
       files = remote_file_download(program, mp3_uri)
     else
-      SouvlakiRS::logger.error "Unable to find RSS entry in #{rss_uri} for #{program}, date: #{date}"
+      SouvlakiRS::logger.error "Unable to find RSS entry in #{rss_uri} for '#{program}', date: #{date}"
     end
 
     files
@@ -78,7 +78,7 @@ module SouvlakiRS
       if SouvlakiRS::Fetch.fetch_file(uri, mp3_dest)
         files << mp3_dest
       else
-        SouvlakiRS::logger.error "Unable to download #{program} from #{uri}"
+        SouvlakiRS::logger.error "Unable to download '#{program}' from #{uri}"
       end
     end
 

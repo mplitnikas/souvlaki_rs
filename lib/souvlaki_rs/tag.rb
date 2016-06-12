@@ -110,7 +110,10 @@ module SouvlakiRS
     private
 
     def self.copy_tag(t)
-      return t.strip if t && t.strip.length > 0
+      if t
+        new_t = t.strip
+        return new_t if new_t && new_t.length > 0
+      end
       nil
     end
 
