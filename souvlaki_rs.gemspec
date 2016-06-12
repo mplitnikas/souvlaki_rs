@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.name               = "souvlaki_rs"
   s.version            = SouvlakiRS::VERSION
   s.platform           = Gem::Platform::RUBY
-  s.default_executable = "fetch_show"
+  s.default_executable = "srs_fetch"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
 
@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
                reject{|f| f =~ /\.txt/}.
                reject{|f| f =~ /\.edn/}
 
-  s.executables = ['fetch_show']
+  s.executables = ['srs_fetch']
   s.homepage = %q{http://rubygems.org/gems/souvlaki_rs}
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.6.2}
