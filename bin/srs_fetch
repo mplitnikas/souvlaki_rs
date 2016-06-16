@@ -198,7 +198,7 @@ codes.each do |arg|
   end
 
   # set up the client for notifications
-  bc = SouvlakiRS::Basecamp::Comment.new("Auto-import for #{req_date} (#{codes_str}):", options[:bc_msg_id]) if bc == nil
+  bc = SouvlakiRS::Basecamp::Comment.new("SRS v#{SouvlakiRS::VERSION} auto-import for #{req_date} (#{codes_str}):", options[:bc_msg_id]) if bc == nil
 
   post |= process_program(program, pub_date, bc, options)
 end
