@@ -28,8 +28,8 @@ module SouvlakiRS
           FileUtils.rm(dest)
           return false
         rescue Timeout::Error
+          response = error.io
           SouvlakiRS::logger.error "Connection timeout error when fetching \"#{uri}\": #{response.status[1]}"
-          FileUtils.rm(dest)
           return false
         end
 
