@@ -23,15 +23,8 @@ module SouvlakiRS
         SouvlakiRS::logger.info "Trimmed title: '#{tags[:title]}'"
       end
 
-      # keep the default artist if set; otherwise use def_artist
-      if tags[:artist] == nil
-        tags[:artist] = def_artist
-
-        SouvlakiRS::logger.info "No creator found in tags. Setting to '#{tags[:artist]}'"
-      end
-
-      # update tags but override album (program name) to our
-      # consistent one
+      # override artist & album (program name) to our consistent one
+      tags[:artist] = def_artist
       tags[:album] = def_album
 
       # and set year because, why not

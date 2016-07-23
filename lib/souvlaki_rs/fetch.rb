@@ -23,14 +23,13 @@ module SouvlakiRS
         rescue OpenURI::HTTPError => error
           response = error.io
           SouvlakiRS::logger.error "Read error when fetching \"#{uri}\": #{response.status[1]}"
-
-          # open-uri will create a 0-len file when it fails to fetch. Delete it
-          FileUtils.rm(dest)
-          return false
         rescue Timeout::Error
           response = error.io
           SouvlakiRS::logger.error "Connection timeout error when fetching \"#{uri}\": #{response.status[1]}"
-          return false
+          if File.exist(dest)
+            FileUtils.rm(dest)
+            SouvlakiRS::logger.info "deleting remaining file"
+          end
         end
 
       else
@@ -38,6 +37,17 @@ module SouvlakiRS
       end
 
       # check to see if it looks like an MP3
+      if !File.exist?(dest)
+        SouvlakiRS::logger.error "File \"#{dest}\" download failed"
+        return false
+      end
+
+      if File.zero?(dest)
+        SouvlakiRS::logger.error "File \"#{dest}\" is empty. Deleting."
+        FileUtils.rm_f(dest)
+        return false
+      end
+
       desc = SouvlakiRS::Util.get_type_desc(dest)
       if (!desc || (!desc.include?("MP3") && !desc.include?("MPEG")))
         SouvlakiRS::logger.error "File \"#{dest}\" does not look to be an MPEG audio file (#{desc})"
