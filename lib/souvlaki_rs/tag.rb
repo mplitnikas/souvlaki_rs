@@ -6,7 +6,7 @@ module SouvlakiRS
 
     #
     # retag a file fetched from web
-    def self.retag_file(file, def_album, def_artist, pub_date, write_tags, replace_if_filename = true)
+    def self.retag_file(file, def_album, def_artist, pub_date, write_tags, rewrite_title = true)
 
       tags = audio_file_read_tags(file)
 
@@ -14,14 +14,16 @@ module SouvlakiRS
       # 1. there's no title tag
       # 2. the title tag equals the album title (show name)
       # 3. the title tag looks like a file name w/ .mp3 extension
+      # 4. config forces it
       if tags[:title] == nil ||
           tags[:title] == def_album ||
-          (replace_if_filename && tags[:title] && tags[:title].downcase.include?('mp3'))
+          (tags[:title] && tags[:title].downcase.include?('mp3')) ||
+          rewrite_title
         date = pub_date.strftime("%Y%m%d")
         old_t = (tags[:title] ? tags[:title] : "")
         tags[:title] = "#{date} #{def_album}"
 
-        SouvlakiRS::logger.warn "No suitable title ('#{old_t}') found in tags. Setting to '#{tags[:title]}'"
+        SouvlakiRS::logger.warn "Title ('#{old_t}') will be overwritten to '#{tags[:title]}'"
       elsif tags[:title] && tags[:title].downcase.start_with?(def_album.downcase)
         # title starts with program name - remove it to be less wordy and clean up leading -, :, or ws
         tags[:title] = tags[:title][def_album.length..-1].gsub(/^[\sfor\-\:]*/,'')
