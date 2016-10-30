@@ -10,8 +10,13 @@ module SouvlakiRS
 
       tags = audio_file_read_tags(file)
 
-      # prep the title - prepend the date we fetched it
-      if tags[:title] == nil || (replace_if_filename && tags[:title] && tags[:title].downcase.include?('mp3'))
+      # prep the title - prepend the date to the album (show name) when
+      # 1. there's no title tag
+      # 2. the title tag equals the album title (show name)
+      # 3. the title tag looks like a file name w/ .mp3 extension
+      if tags[:title] == nil ||
+          tags[:title] == def_album ||
+          (replace_if_filename && tags[:title] && tags[:title].downcase.include?('mp3'))
         date = pub_date.strftime("%Y%m%d")
         old_t = (tags[:title] ? tags[:title] : "")
         tags[:title] = "#{date} #{def_album}"
