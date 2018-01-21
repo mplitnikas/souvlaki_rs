@@ -1,4 +1,4 @@
 module SouvlakiRS
-  VERSION      = '0.9.6'
-  RELEASE_DATE = '2016-10-30'
+  VERSION      = '0.9.7'
+  RELEASE_DATE = '2018-01-21'
 end
