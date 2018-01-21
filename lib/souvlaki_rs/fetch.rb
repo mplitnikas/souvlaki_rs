@@ -30,6 +30,9 @@ module SouvlakiRS
             FileUtils.rm(dest)
             SouvlakiRS::logger.info "deleting remaining file"
           end
+        rescue Exception => e
+          SouvlakiRS::logger.error "Error when fetching \"#{uri}\": #{e.message}"
+          return false
         end
 
       else
