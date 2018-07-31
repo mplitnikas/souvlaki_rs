@@ -31,7 +31,6 @@ module SouvlakiRS
 
       # spider audioport and download any files we find that match the date
       files = SouvlakiRS::Audioport.fetch_files(program, date, show_name_uri)
-binding.pry
 
       SouvlakiRS.logger.warn "Unable to download '#{program}' dated #{date} from Audioport" if files.empty?
     end
